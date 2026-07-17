@@ -1,6 +1,6 @@
 # PoliSpace
 
-PoliSpace is a facility booking system with static HTML pages, a PHP REST API, MySQL persistence, and payment proof uploads.
+PoliSpace is a facility booking system with static HTML pages, a PHP REST API, MySQL persistence, and admin-managed booking approval.
 
 ## Project Structure
 
@@ -46,8 +46,8 @@ C:\laragon\www\PoliSpace
 mysql -u root -p < database/polspace.sql
 ```
 
-3. Update database credentials in `backend/config.php` if your MySQL user is not `root` with an empty password.
-4. Make sure `uploads/payments` is writable by PHP.
+3. Copy `.env.example` to `.env` and update database credentials if your MySQL user is not `root` with an empty password.
+4. Make sure `uploads/payments` is writable by PHP if payment uploads are enabled later.
 5. Open the app through a web server, not directly as `file://`:
 
 ```text
