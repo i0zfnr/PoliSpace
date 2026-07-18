@@ -17,6 +17,6 @@ http://localhost/PoliSpace/
 Run verification after changes:
 
 ```powershell
-node --check resources/js/script.js
+Get-ChildItem -Recurse resources/js -Filter *.js | ForEach-Object { node --check $_.FullName }
 Get-ChildItem -Recurse backend -Filter *.php | ForEach-Object { php -l $_.FullName }
 ```

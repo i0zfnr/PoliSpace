@@ -34,8 +34,34 @@ PoliSpace/
   resources/
     css/
       style.css
+      base/
+        base.css
+        responsive.css
+      components/
+        admin.css
+        buttons.css
+        calendar.css
+        navigation.css
+        success.css
+      pages/
+        booking.css
+        landing.css
+        status.css
     js/
       script.js
+      core/
+        api.js
+        config.js
+        fallback.js
+        helpers.js
+        init.js
+      features/
+        admin.js
+        auth.js
+        booking.js
+        dashboard.js
+        facilities.js
+        status.js
     views/
       welcome.html
       admin/
@@ -147,7 +173,7 @@ GET  backend/api/users.php?action=detail&id=1
 ## Verification
 
 ```powershell
-node --check resources/js/script.js
+Get-ChildItem -Recurse resources/js -Filter *.js | ForEach-Object { node --check $_.FullName }
 Get-ChildItem -Recurse backend -Filter *.php | ForEach-Object { php -l $_.FullName }
 ```
 

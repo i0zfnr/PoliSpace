@@ -16,8 +16,13 @@ It is now organized with a cleaner frontend structure:
 resources/
   css/
     style.css
+    base/
+    components/
+    pages/
   js/
     script.js
+    core/
+    features/
   views/
     welcome.html
     admin/
@@ -52,7 +57,9 @@ The app uses MySQL database `polspace`. Configuration should come from `.env`.
 
 ## Important Frontend Notes
 
-`resources/js/script.js` defines:
+`resources/js/script.js` is the frontend entry file. It loads the split JS files in order with `document.write`, so pages only need one script tag.
+
+`resources/js/core/config.js` defines:
 
 ```js
 const APP_ROOT = '/PoliSpace';
@@ -67,6 +74,8 @@ All main pages load:
 <link rel="stylesheet" href="/PoliSpace/resources/css/style.css">
 <script src="/PoliSpace/resources/js/script.js"></script>
 ```
+
+`resources/css/style.css` is the CSS entry file and imports smaller files from `base/`, `components/`, and `pages/`.
 
 ## User Flow
 
@@ -113,7 +122,7 @@ For all four facilities, the setup option is only `Pakej Lengkap`.
 Run these after changes:
 
 ```powershell
-node --check resources/js/script.js
+Get-ChildItem -Recurse resources/js -Filter *.js | ForEach-Object { node --check $_.FullName }
 Get-ChildItem -Recurse backend -Filter *.php | ForEach-Object { php -l $_.FullName }
 ```
 
@@ -139,13 +148,18 @@ backend/api/auth.php
 backend/api/users.php
 resources/css/style.css
 resources/js/script.js
+resources/css/base/**
+resources/css/components/**
+resources/css/pages/**
+resources/js/core/**
+resources/js/features/**
 resources/views/**
 root redirect HTML files
 ```
 
 ## Known Caveats
 
-- `resources/js/script.js` still has localStorage fallback logic for preview mode.
+- `resources/js/core/fallback.js` still has localStorage fallback logic for preview mode.
 - `resources/views/dashboard/index.html` still contains a legacy inline dashboard script. A future cleanup should remove it after confirming the shared JS covers all dashboard behavior.
 - `APP_ROOT` is hardcoded to `/PoliSpace`.
 - Production hardening is still needed: CSRF protection, restricted CORS, HTTPS-only cookies, and changing default admin credentials.
