@@ -60,6 +60,60 @@ if ($action === 'auto') {
     jsonResponse(['success' => false, 'error' => 'Invalid account role'], 401);
 }
 
+if ($action === 'signup') {
+    $email = trim((string)($input['email'] ?? ''));
+    $password = (string)($input['password'] ?? '');
+    $confirm = (string)($input['password_confirm'] ?? '');
+    $fullName = trim((string)($input['full_name'] ?? ''));
+    $phone = trim((string)($input['phone'] ?? ''));
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['success' => false, 'error' => 'Valid email required'], 400);
+    }
+
+    if (strlen($password) < 6) {
+        jsonResponse(['success' => false, 'error' => 'Password must be at least 6 characters'], 400);
+    }
+
+    if ($password !== $confirm) {
+        jsonResponse(['success' => false, 'error' => 'Password confirmation does not match'], 400);
+    }
+
+    $user = $db->fetchOne('SELECT id, email, password, role FROM users WHERE email = ?', [$email]);
+    if ($user && $user['role'] === 'admin') {
+        jsonResponse(['success' => false, 'error' => 'Admin account cannot use client signup'], 400);
+    }
+
+    if ($user && !empty($user['password'])) {
+        jsonResponse(['success' => false, 'error' => 'Account already exists. Please login.'], 409);
+    }
+
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    if ($user) {
+        $db->update(
+            "UPDATE users SET password = ?, full_name = COALESCE(NULLIF(?, ''), full_name), phone = COALESCE(NULLIF(?, ''), phone), role = 'user' WHERE id = ?",
+            [$hash, $fullName, $phone, $user['id']]
+        );
+        $userId = (int)$user['id'];
+    } else {
+        $userId = (int)$db->insert(
+            'INSERT INTO users (email, password, full_name, phone, role) VALUES (?, ?, ?, ?, ?)',
+            [$email, $hash, $fullName, $phone, 'user']
+        );
+    }
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['user_email'] = $email;
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Signup successful',
+        'role' => 'user',
+        'redirect' => 'dashboard.html',
+        'email' => $email,
+    ]);
+}
+
 if ($action === 'login') {
     $email = trim((string)($input['email'] ?? ''));
     $password = (string)($input['password'] ?? '');

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoliSpace — Dashboard Pengguna</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/PoliSpace/resources/css/style.css?v=20260718-calendar-nav">
+    <style>
+        /* ===== DASHBOARD SPECIFIC ===== */
+        .dash-hero {
+            padding: 120px 48px 48px;
+            background: linear-gradient(180deg, rgba(201, 168, 76, 0.06) 0%, transparent 100%);
+        }
+        .dash-hero h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            margin-bottom: 6px;
+        }
+        .dash-hero p {
+            color: var(--grey-4);
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .dash-user-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        .dash-user-bar label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--grey-4);
+            font-weight: 700;
+            margin: 0;
+        }
+        .dash-user-bar input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 1px solid var(--grey-2);
+            border-radius: var(--radius);
+            font-size: 14px;
+            background: var(--bg-main);
+        }
+        .dash-user-bar input:focus {
+            border-color: var(--gold);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+        }
+        .dash-user-bar .btn {
+            padding: 10px 24px;
+            flex-shrink: 0;
+        }
+        .dash-user-email-display {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            color: var(--gold);
+            font-size: 14px;
+        }
+
+        /* Quick Actions Grid */
+        .dash-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 32px;
+        }
+        .dash-action-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px 24px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .dash-action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+            border-color: rgba(201, 168, 76, 0.3);
+        }
+        .dash-action-card .action-icon {
+            font-size: 32px;
+            color: var(--gold);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .dash-action-card .action-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .dash-action-card .action-desc {
+            font-size: 12px;
+            color: var(--grey-4);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .dash-action-card .action-arrow {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            color: var(--grey-3);
+            font-size: 16px;
+            transition: var(--transition);
+        }
+        .dash-action-card:hover .action-arrow {
+            transform: translate(4px, -4px);
+            color: var(--gold);
+        }
+
+        /* My Bookings */
+        .dash-section {
+            padding: 48px 48px 80px;
+        }
+        .dash-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .dash-section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+        }
+        .dash-section-title small {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--grey-4);
+            margin-left: 12px;
+        }
+        .dash-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--grey-4);
+        }
+        .dash-empty .empty-icon {
+            font-size: 48px;
+            color: var(--grey-3);
+            opacity: 0.4;
+            margin-bottom: 16px;
+        }
+        .dash-empty .empty-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--grey-5);
+            margin-bottom: 4px;
+        }
+        .dash-empty .empty-sub {
+            font-size: 13px;
+        }
+
+        .booking-row-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn-cancel {
+            background: var(--red);
+            color: #fff;
+            border: none;
+            padding: 4px 14px;
+            border-radius: var(--radius);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-cancel:hover {
+            background: #b33;
+            transform: scale(0.96);
+        }
+        .btn-cancel:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Contact Modal */
+        .contact-form .form-group {
+            margin-bottom: 16px;
+        }
+        .contact-form textarea {
+            min-height: 120px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dash-hero {
+                padding: 100px 20px 32px;
+            }
+            .dash-section {
+                padding: 32px 20px 60px;
+            }
+            .dash-actions {
+                grid-template-columns: 1fr 1fr;
+            }
+            .dash-user-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .dash-user-bar .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        @media (max-width: 480px) {
+            .dash-actions {
+                grid-template-columns: 1fr;
+            }
+            .dash-section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Contact success toast override */
+        .toast-contact {
+            border-left: 4px solid var(--gold);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== NAV ===== -->
+    <nav id="main-nav">
+        <div class="nav-logo" onclick="window.location.href='/PoliSpace/resources/views/welcome.html'">
+            <div class="nav-logo-mark"></div>
+            <div>
+                <div class="nav-logo-text">PoliSpace</div>
+                <div class="nav-logo-sub">Fasiliti</div>
+            </div>
+        </div>
+        <div class="nav-links">
+            <button class="nav-link" onclick="window.location.href='/PoliSpace/resources/views/welcome.html'">Laman Utama</button>
+            <button class="nav-link" onclick="window.location.href='/PoliSpace/resources/views/booking/index.html'">Tempahan</button>
+            <button class="nav-link active" onclick="window.location.href='/PoliSpace/resources/views/dashboard/index.html'">Dashboard</button>
+            <button class="nav-link" onclick="window.location.href='/PoliSpace/resources/views/status/index.html'">Semak Status</button>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-nav-admin" onclick="logoutUser()">Log Keluar</button>
+        </div>
+    </nav>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===== DASHBOARD VIEW ===== -->
+    <div id="dashboard" class="view active page-transition">
+
+        <!-- HERO -->
+        <div class="dash-hero">
+            <h1>Dashboard Anda</h1>
+            <p>Urus semua tempahan fasiliti anda di satu tempat.</p>
+
+            <div class="dash-user-bar" id="userBar">
+                <label><i class="bi bi-envelope"></i> E-mel Anda</label>
+                <span class="dash-user-email-display" id="dashUserDisplay"></span>
+            </div>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="dash-section" style="padding-top:0;">
+            <div class="dash-actions">
+                <div class="dash-action-card" onclick="window.location.href='/PoliSpace/resources/views/booking/index.html'">
+                    <span class="action-arrow"><i class="bi bi-arrow-up-right"></i></span>
+                    <span class="action-icon"><i class="bi bi-calendar-plus"></i></span>
+                    <div class="action-title">Buat Tempahan</div>
+                    <div class="action-desc">Tempah fasiliti baharu</div>
+                </div>
+                <div class="dash-action-card" onclick="document.getElementById('dashBookingsSection').scrollIntoView({behavior:'smooth'})">
+                    <span class="action-arrow"><i class="bi bi-arrow-up-right"></i></span>
+                    <span class="action-icon"><i class="bi bi-list-ul"></i></span>
+                    <div class="action-title">Mengurus Tempahan</div>
+                    <div class="action-desc">Lihat & batalkan tempahan anda</div>
+                </div>
+                <div class="dash-action-card" onclick="window.location.href='/PoliSpace/resources/views/status/index.html'">
+                    <span class="action-arrow"><i class="bi bi-arrow-up-right"></i></span>
+                    <span class="action-icon"><i class="bi bi-search"></i></span>
+                    <div class="action-title">Semak Tempahan</div>
+                    <div class="action-desc">Semak status melalui rujukan</div>
+                </div>
+                <div class="dash-action-card" onclick="openContactModal()">
+                    <span class="action-arrow"><i class="bi bi-arrow-up-right"></i></span>
+                    <span class="action-icon"><i class="bi bi-chat-dots"></i></span>
+                    <div class="action-title">Hubungi Admin</div>
+                    <div class="action-desc">Hantar pertanyaan atau maklum balas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MY BOOKINGS -->
+        <div class="dash-section" id="dashBookingsSection">
+            <div class="dash-section-header">
+                <div class="dash-section-title">
+                    Tempahan Saya
+                    <small id="bookingCountLabel">0 tempahan</small>
+                </div>
+                <div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadUserBookings()">
+                        <i class="bi bi-arrow-clockwise"></i> Muat Semula
+                    </button>
+                </div>
+            </div>
+            <div id="dashBookingsContainer">
+                <!-- Rendered by JS -->
+                <div class="dash-empty">
+                    <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+                    <div class="empty-title">Tiada Tempahan</div>
+                    <div class="empty-sub">Masukkan e-mel anda di atas untuk melihat tempahan anda.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONTACT MODAL ===== -->
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title"><i class="bi bi-chat-dots" style="color:var(--gold)"></i> Hubungi Admin</div>
+                <button class="modal-close" onclick="closeModal('contactModal')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body contact-form">
+                <p style="color:var(--grey-4);font-size:13px;margin-bottom:20px;">Ada pertanyaan tentang tempahan anda? Hantar mesej kepada pentadbir dan kami akan respon secepat mungkin.</p>
+                <div class="form-group">
+                    <label>E-mel Anda *</label>
+                    <input type="email" id="contactEmail" placeholder="nama@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Subjek *</label>
+                    <input type="text" id="contactSubject" placeholder="cth: Pertanyaan Tempahan PS-0001">
+                </div>
+                <div class="form-group">
+                    <label>Mesej *</label>
+                    <textarea id="contactMessage" placeholder="Tulis mesej anda di sini..."></textarea>
+                </div>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="sendContactMessage()">
+                    <i class="bi bi-send"></i> Hantar Mesej
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shared script is loaded after the legacy inline block so it owns the final handlers. -->
+    <script>
+        // ============================================================
+        // DASHBOARD — User Dashboard Logic
+        // ============================================================
+
+        // ----- State -----
+        let currentUserEmail = localStorage.getItem('ps_user_email') || '';
+
+        // ----- Init -----
+        function initDashboard() {
+            const input = document.getElementById('dashEmailInput');
+            if (input) {
+                input.value = currentUserEmail;
+            }
+            updateUserDisplay();
+            loadUserBookings();
+        }
+
+        // ----- Set User Email -----
+        function setUserEmail() {
+            const input = document.getElementById('dashEmailInput');
+            const email = input.value.trim();
+            if (!email) {
+                showToast('Sila masukkan alamat e-mel.', 'error');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showToast('Format e-mel tidak sah.', 'error');
+                return;
+            }
+            currentUserEmail = email;
+            localStorage.setItem('ps_user_email', email);
+            updateUserDisplay();
+            loadUserBookings();
+            showToast('E-mel dikemas kini. Tempahan anda dimuatkan.', 'success');
+        }
+
+        function updateUserDisplay() {
+            const el = document.getElementById('dashUserDisplay');
+            if (el) {
+                el.textContent = currentUserEmail ? `✓ ${currentUserEmail}` : 'Sila masukkan e-mel';
+                el.style.color = currentUserEmail ? 'var(--gold)' : 'var(--grey-4)';
+            }
+        }
+
+        // ----- Load Bookings -----
+        function loadUserBookings() {
+            const container = document.getElementById('dashBookingsContainer');
+            if (!container) return;
+
+            if (!currentUserEmail) {
+                container.innerHTML = `
+                    <div class="dash-empty">
+                        <div class="empty-icon"><i class="bi bi-envelope"></i></div>
+                        <div class="empty-title">Masukkan E-mel Anda</div>
+                        <div class="empty-sub">Gunakan ruangan di atas untuk memuatkan tempahan anda.</div>
+                    </div>
+                `;
+                document.getElementById('bookingCountLabel').textContent = '0 tempahan';
+                return;
+            }
+
+            const allBookings = getBookings();
+            const userBookings = allBookings.filter(b =>
+                b.email && b.email.toLowerCase() === currentUserEmail.toLowerCase()
+            );
+
+            // Sort by date (newest first)
+            userBookings.sort((a, b) => (a.date > b.date ? -1 : 1));
+
+            document.getElementById('bookingCountLabel').textContent =
+                `${userBookings.length} tempahan`;
+
+            if (userBookings.length === 0) {
+                container.innerHTML = `
+                    <div class="dash-empty">
+                        <div class="empty-icon"><i class="bi bi-calendar2-x"></i></div>
+                        <div class="empty-title">Tiada Tempahan</div>
+                        <div class="empty-sub">Anda belum membuat sebarang tempahan dengan e-mel ini.</div>
+                        <button class="btn btn-primary" style="margin-top:20px;" onclick="window.location.href='/PoliSpace/resources/views/booking/index.html'">
+                            <i class="bi bi-calendar-plus"></i> Buat Tempahan Sekarang
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build table
+            let html = `
+                <div style="overflow-x:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Rujukan</th>
+                                <th>Fasiliti</th>
+                                <th>Tarikh</th>
+                                <th>Masa</th>
+                                <th>Status</th>
+                                <th>Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            userBookings.forEach(b => {
+                const canCancel = b.status === 'pending';
+                html += `
+                    <tr>
+                        <td><div class="booking-id">${b.id}</div></td>
+                        <td><span style="display:flex;align-items:center;gap:6px;">${b.facilityIcon || '🏛️'} ${b.facilityName}</span></td>
+                        <td>${formatDate(b.date)}</td>
+                        <td>${b.start} – ${b.end || '—'}</td>
+                        <td>${statusBadgeHtml(b.status)}</td>
+                        <td>
+                            <div class="booking-row-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="viewBookingDetail('${b.id}')">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                ${canCancel ? `<button class="btn-cancel" onclick="cancelUserBooking('${b.id}')"><i class="bi bi-x-lg"></i> Batal</button>` : ''}
+                                ${b.status === 'rejected' ? `<span style="font-size:10px;color:var(--red);font-weight:600;">Ditolak</span>` : ''}
+                                ${b.status === 'approved' ? `<span style="font-size:10px;color:var(--green);font-weight:600;"><i class="bi bi-check-circle-fill"></i> Sah</span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+        }
+
+        // ----- Cancel User Booking -----
+        function cancelUserBooking(id) {
+            if (!confirm('Anda pasti mahu membatalkan tempahan ini?')) return;
+
+            const bookings = getBookings();
+            const idx = bookings.findIndex(b => b.id === id);
+            if (idx === -1) {
+                showToast('Tempahan tidak dijumpai.', 'error');
+                return;
+            }
+            if (bookings[idx].status !== 'pending') {
+                showToast('Hanya tempahan yang masih menunggu boleh dibatalkan.', 'error');
+                return;
+            }
+
+            bookings[idx].status = 'rejected';
+            bookings[idx].adminNote = 'Dibatalkan oleh pengguna.';
+            saveBookings(bookings);
+            loadUserBookings();
+            showToast(`Tempahan ${id} telah dibatalkan.`, 'success');
+        }
+
+        // ----- Contact Admin -----
+        function openContactModal() {
+            // Pre-fill email from user session
+            const emailInput = document.getElementById('contactEmail');
+            if (emailInput) {
+                emailInput.value = currentUserEmail || '';
+            }
+            document.getElementById('contactModal').classList.add('active');
+        }
+
+        function sendContactMessage() {
+            const email = document.getElementById('contactEmail').value.trim();
+            const subject = document.getElementById('contactSubject').value.trim();
+            const message = document.getElementById('contactMessage').value.trim();
+
+            if (!email || !subject || !message) {
+                showToast('Sila lengkapkan semua ruangan.', 'error');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showToast('Format e-mel tidak sah.', 'error');
+                return;
+            }
+
+            // Store contact message in localStorage
+            const contacts = JSON.parse(localStorage.getItem('ps_contact_messages') || '[]');
+            contacts.push({
+                id: 'MSG-' + String(contacts.length + 1).padStart(4, '0'),
+                email,
+                subject,
+                message,
+                createdAt: new Date().toISOString(),
+                read: false
+            });
+            localStorage.setItem('ps_contact_messages', JSON.stringify(contacts));
+
+            closeModal('contactModal');
+            document.getElementById('contactSubject').value = '';
+            document.getElementById('contactMessage').value = '';
+
+            showToast('Mesej anda telah dihantar. Admin akan respon segera.', 'success');
+        }
+
+        // ----- Override viewBookingDetail to show user-friendly version -----
+        // (Already defined in script.js, but we keep it compatible)
+
+        // ----- Init on page load -----
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure script.js loaded first, then init dashboard
+            if (typeof getBookings === 'function') {
+                initDashboard();
+            } else {
+                // fallback: wait a tick
+                setTimeout(initDashboard, 100);
+            }
+
+            // Enter key on email input
+            const input = document.getElementById('dashEmailInput');
+            if (input) {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') setUserEmail();
+                });
+            }
+        });
+
+        // Also re-run when coming from another page (if DOM already loaded)
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            // already loaded, but ensure init runs after script.js
+            setTimeout(initDashboard, 50);
+        }
+    </script>
+    <script src="/PoliSpace/resources/js/script.js?v=20260718-calendar-nav"></script>
+
+</body>
+</html>

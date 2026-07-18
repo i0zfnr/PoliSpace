@@ -1,8 +1,20 @@
 // ==================== API CONFIGURATION ====================
-const API_BASE = 'backend/api';
+const APP_ROOT = '/PoliSpace';
+const ROUTES = {
+  home: `${APP_ROOT}/resources/views/welcome.html`,
+  booking: `${APP_ROOT}/resources/views/booking/index.html`,
+  status: `${APP_ROOT}/resources/views/status/index.html`,
+  login: `${APP_ROOT}/resources/views/auth/login.html`,
+  signup: `${APP_ROOT}/resources/views/auth/signup.html`,
+  dashboard: `${APP_ROOT}/resources/views/dashboard/index.html`,
+  adminDashboard: `${APP_ROOT}/resources/views/admin/dashboard.html`,
+  adminLogin: `${APP_ROOT}/resources/views/admin/login.html`,
+};
+const API_BASE = `${APP_ROOT}/backend/api`;
 let apiOnline = true;
 let facilitiesCache = [];
 let landingCalendarDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let bookingCalendarDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 const FALLBACK_FACILITIES = [
   { id: 1, name: 'Dewan Utama', icon: 'bi-bank', capacity: 800, price_per_hour: 450, description: 'Kemudahan: Econ, PA system, projector.', is_available: true },
@@ -99,6 +111,10 @@ async function autoLogin(email, password) {
   return await authRequest('auto', { email, password });
 }
 
+async function signupClient(data) {
+  return await authRequest('signup', data);
+}
+
 // ==================== LOCAL FALLBACK ====================
 function getBookings() {
   return JSON.parse(localStorage.getItem('ps_bookings') || '[]');
@@ -165,7 +181,7 @@ async function doAutoLogin() {
       localStorage.removeItem('ps_admin_logged_in');
       localStorage.setItem('ps_user_email', result.email || email);
     }
-    window.location.href = result.redirect || (result.role === 'admin' ? 'admin-dashboard.html' : 'dashboard.html');
+    window.location.href = result.role === 'admin' ? ROUTES.adminDashboard : ROUTES.dashboard;
   } catch (error) {
     if (errorEl) {
       errorEl.textContent = error.message || 'E-mel atau kata laluan tidak sah.';
@@ -187,11 +203,11 @@ async function doLogin() {
   try {
     await adminLogin(email, password);
     localStorage.setItem('ps_admin_logged_in', '1');
-    window.location.href = 'admin-dashboard.html';
+    window.location.href = ROUTES.adminDashboard;
   } catch (error) {
     if ((!error.status || error.status === 405 || error.status >= 500) && (rawUser === 'admin' || rawUser === 'admin@polspace.com') && password === 'admin123') {
       localStorage.setItem('ps_admin_logged_in', '1');
-      window.location.href = 'admin-dashboard.html';
+      window.location.href = ROUTES.adminDashboard;
       return;
     }
     if (errorEl) {
@@ -216,7 +232,7 @@ async function doUserLogin() {
   try {
     await userLogin(email);
     localStorage.setItem('ps_user_email', email);
-    window.location.href = 'dashboard.html';
+    window.location.href = ROUTES.dashboard;
   } catch (error) {
     showToast(error.message || 'Log masuk pengguna gagal.', 'error');
     return;
@@ -225,12 +241,12 @@ async function doUserLogin() {
 
 function doLogout() {
   localStorage.removeItem('ps_admin_logged_in');
-  window.location.href = 'index.html';
+  window.location.href = ROUTES.home;
 }
 
 function logoutUser() {
   localStorage.removeItem('ps_user_email');
-  window.location.href = 'login.html';
+  window.location.href = ROUTES.login;
 }
 
 // ==================== FACILITIES ====================
@@ -283,7 +299,7 @@ async function renderFacilities() {
 
 function selectFacilityAndBook(fid) {
   localStorage.setItem('ps_selected_facility', fid);
-  window.location.href = 'booking.html';
+  window.location.href = ROUTES.booking;
 }
 
 async function loadPublicCalendarBookings(year, month) {
@@ -383,19 +399,50 @@ async function renderPublicCalendarView() {
   const calendar = document.getElementById('calendarView');
   if (!calendar || document.getElementById('admin')) return;
 
-  const today = new Date();
+  const year = bookingCalendarDate.getFullYear();
+  const month = bookingCalendarDate.getMonth() + 1;
   let bookings = [];
   try {
-    bookings = await loadPublicCalendarBookings(today.getFullYear(), today.getMonth() + 1);
+    bookings = await loadPublicCalendarBookings(year, month);
   } catch (error) {
     bookings = getBookings();
   }
-  renderCalendar(bookings);
+  renderCalendar(bookings, bookingCalendarDate);
 }
 
 function changeLandingCalendarMonth(delta) {
   landingCalendarDate = new Date(landingCalendarDate.getFullYear(), landingCalendarDate.getMonth() + delta, 1);
   renderLandingCalendar();
+}
+
+async function refreshBookingCalendar() {
+  const calendar = document.getElementById('calendarView');
+  if (!calendar) return;
+
+  if (!document.getElementById('admin')) {
+    await renderPublicCalendarView();
+    return;
+  }
+
+  let bookings = [];
+  try {
+    const result = await tryApi('bookings.php');
+    bookings = result.data || [];
+  } catch (error) {
+    bookings = getBookings();
+  }
+  renderCalendar(bookings, bookingCalendarDate);
+}
+
+function changeBookingCalendarMonth(delta) {
+  bookingCalendarDate = new Date(bookingCalendarDate.getFullYear(), bookingCalendarDate.getMonth() + delta, 1);
+  refreshBookingCalendar();
+}
+
+function resetBookingCalendarMonth() {
+  const now = new Date();
+  bookingCalendarDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  refreshBookingCalendar();
 }
 
 async function populateBookingFacilities() {
@@ -532,7 +579,7 @@ async function submitBooking() {
   }
   try {
     const result = apiOnline ? await createBookingApi(data) : null;
-    showBookingSuccess(result?.booking_ref);
+    redirectToSignup(result?.booking_ref, data);
   } catch (error) {
     apiOnline = false;
     const facility = getSelectedFacility();
@@ -562,7 +609,7 @@ async function submitBooking() {
     const bookings = getBookings();
     bookings.push(booking);
     saveBookings(bookings);
-    showBookingSuccess(id);
+    redirectToSignup(id, data);
   }
 }
 
@@ -570,6 +617,76 @@ function showBookingSuccess(ref) {
   document.getElementById('booking-form-wrap').style.display = 'none';
   document.getElementById('successScreen').classList.add('show');
   setText('refCode', ref || '');
+}
+
+function redirectToSignup(ref, bookingData) {
+  localStorage.setItem('ps_pending_signup_ref', ref || '');
+  localStorage.setItem('ps_pending_signup_email', bookingData.email || '');
+  const params = new URLSearchParams({
+    ref: ref || '',
+    email: bookingData.email || '',
+    name: bookingData.full_name || '',
+    phone: bookingData.phone || '',
+  });
+  window.location.href = `${ROUTES.signup}?${params.toString()}`;
+}
+
+async function doSignup() {
+  const fullName = document.getElementById('signup-name')?.value.trim() || '';
+  const phone = document.getElementById('signup-phone')?.value.trim() || '';
+  const email = document.getElementById('signup-email')?.value.trim() || '';
+  const password = document.getElementById('signup-password')?.value || '';
+  const passwordConfirm = document.getElementById('signup-password-confirm')?.value || '';
+  const errorEl = document.getElementById('signupError');
+
+  if (errorEl) errorEl.classList.remove('show');
+
+  if (!fullName || !phone || !isValidEmail(email) || password.length < 6 || password !== passwordConfirm) {
+    const message = password !== passwordConfirm ? 'Kata laluan pengesahan tidak sama.' : 'Sila lengkapkan semua ruangan dengan betul.';
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.add('show');
+    } else {
+      showToast(message, 'error');
+    }
+    return;
+  }
+
+  try {
+    const result = await signupClient({
+      full_name: fullName,
+      phone,
+      email,
+      password,
+      password_confirm: passwordConfirm,
+    });
+    localStorage.setItem('ps_user_email', result.email || email);
+    localStorage.removeItem('ps_admin_logged_in');
+    window.location.href = ROUTES.dashboard;
+  } catch (error) {
+    if (errorEl) {
+      errorEl.textContent = error.message || 'Pendaftaran gagal.';
+      errorEl.classList.add('show');
+    } else {
+      showToast(error.message || 'Pendaftaran gagal.', 'error');
+    }
+  }
+}
+
+function initSignupPage() {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref') || localStorage.getItem('ps_pending_signup_ref') || '';
+  const email = params.get('email') || localStorage.getItem('ps_pending_signup_email') || '';
+  const name = params.get('name') || '';
+  const phone = params.get('phone') || '';
+
+  setText('signupRef', ref || '-');
+  const emailEl = document.getElementById('signup-email');
+  const nameEl = document.getElementById('signup-name');
+  const phoneEl = document.getElementById('signup-phone');
+  if (emailEl) emailEl.value = email;
+  if (nameEl) nameEl.value = name;
+  if (phoneEl) phoneEl.value = phone;
 }
 
 function resetBookingForm() {
@@ -634,7 +751,7 @@ let psCurrentUserEmail = localStorage.getItem('ps_user_email') || '';
 
 function initDashboard() {
   if (!psCurrentUserEmail) {
-    window.location.href = 'login.html';
+    window.location.href = ROUTES.login;
     return;
   }
   const input = document.getElementById('dashEmailInput');
@@ -687,7 +804,7 @@ function renderUserBookings(bookings, container) {
   bookings.sort((a, b) => (a.date > b.date ? -1 : 1));
   setText('bookingCountLabel', `${bookings.length} tempahan`);
   if (bookings.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="empty-icon"><i class="bi bi-calendar2-x"></i></div><div class="empty-title">Tiada Tempahan</div><div class="empty-sub">Anda belum membuat sebarang tempahan dengan e-mel ini.</div><button class="btn btn-primary" style="margin-top:20px;" onclick="window.location.href='booking.html'"><i class="bi bi-calendar-plus"></i> Buat Tempahan Sekarang</button></div>`;
+    container.innerHTML = `<div class="dash-empty"><div class="empty-icon"><i class="bi bi-calendar2-x"></i></div><div class="empty-title">Tiada Tempahan</div><div class="empty-sub">Anda belum membuat sebarang tempahan dengan e-mel ini.</div><button class="btn btn-primary" style="margin-top:20px;" onclick="window.location.href='${ROUTES.booking}'"><i class="bi bi-calendar-plus"></i> Buat Tempahan Sekarang</button></div>`;
     return;
   }
   container.innerHTML = `
@@ -789,7 +906,7 @@ async function renderAdminDashboard() {
   renderBookingsTable('recentBookingsTbody', bookings.slice(0, 5), true);
   renderBookingsTable('allBookingsTbody', bookings, false);
   renderFacilityManagement(facilities);
-  renderCalendar(bookings);
+  renderCalendar(bookings, bookingCalendarDate);
   loadClients();
 }
 
@@ -890,54 +1007,61 @@ function renderClientsTable(clients) {
       <td><div class="tenant-name">${escapeHtml(client.full_name || '-')}</div></td>
       <td>${escapeHtml(client.email)}</td>
       <td>${escapeHtml(client.phone || '-')}</td>
-      <td>${client.has_password ? '<span class="status-badge status-available">Sudah Ditetapkan</span>' : '<span class="status-badge status-pending">Belum Ada</span>'}</td>
+      <td><span class="status-badge status-pending">${Number(client.booking_count || 0)} tempahan</span></td>
       <td>
         <div class="table-actions">
-          <button class="btn btn-secondary btn-sm" onclick="generateClientPassword(${Number(client.id)}, '${escapeAttr(client.email)}')"><i class="bi bi-magic"></i> Jana</button>
-          <button class="btn btn-primary btn-sm" onclick="setClientPasswordPrompt(${Number(client.id)}, '${escapeAttr(client.email)}')"><i class="bi bi-key"></i> Set</button>
+          <button class="btn btn-secondary btn-sm" onclick="viewClientDetail(${Number(client.id)})"><i class="bi bi-eye"></i> Lihat</button>
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-function makeClientPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  let password = 'PS-';
-  for (let i = 0; i < 8; i += 1) {
-    password += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return password;
-}
-
-async function generateClientPassword(id, email) {
-  const password = makeClientPassword();
-  await setClientPassword(id, password);
-  window.prompt(`Kata laluan untuk ${email}. Berikan kepada pelanggan selepas tempahan berjaya.`, password);
-}
-
-async function setClientPasswordPrompt(id, email) {
-  const password = window.prompt(`Masukkan kata laluan baharu untuk ${email} (minimum 6 aksara):`);
-  if (!password) return;
-  await setClientPassword(id, password);
-}
-
-async function setClientPassword(id, password) {
+async function viewClientDetail(id) {
   try {
-    await tryApi(`users.php?id=${encodeURIComponent(id)}`, 'PUT', { password });
-    await loadClients();
-    showToast('Kata laluan pelanggan dikemas kini.', 'success');
+    const result = await tryApi(`users.php?action=detail&id=${encodeURIComponent(id)}`);
+    const user = result.data.user;
+    const bookings = result.data.bookings || [];
+    setText('modalTitle', `Butiran Pelanggan - ${user.full_name || user.email}`);
+    document.getElementById('modalBody').innerHTML = `
+      <div class="detail-row"><span class="detail-label">Nama</span><span class="detail-value">${escapeHtml(user.full_name || '-')}</span></div>
+      <div class="detail-row"><span class="detail-label">E-mel</span><span class="detail-value">${escapeHtml(user.email)}</span></div>
+      <div class="detail-row"><span class="detail-label">No Telefon</span><span class="detail-value">${escapeHtml(user.phone || '-')}</span></div>
+      <div class="detail-row"><span class="detail-label">Akaun</span><span class="detail-value">${user.has_password ? 'Sudah daftar' : 'Belum daftar'}</span></div>
+      <div class="detail-row"><span class="detail-label">Tarikh Daftar</span><span class="detail-value">${escapeHtml(user.created_at || '-')}</span></div>
+      <div style="margin-top:24px">
+        <div class="admin-card-title" style="margin-bottom:12px">Tempahan Pelanggan</div>
+        ${bookings.length ? `
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Rujukan</th><th>Fasiliti</th><th>Tarikh</th><th>Masa</th><th>Status</th></tr></thead>
+              <tbody>${bookings.map((booking) => `
+                <tr>
+                  <td><div class="booking-id">${escapeHtml(booking.booking_ref)}</div></td>
+                  <td>${escapeHtml(booking.facility_name || '-')}</td>
+                  <td>${formatDate(booking.booking_date)}</td>
+                  <td>${escapeHtml(String(booking.start_time || '').slice(0, 5))} - ${escapeHtml(String(booking.end_time || '').slice(0, 5) || '-')}</td>
+                  <td>${statusBadgeHtml(booking.status)}</td>
+                </tr>
+              `).join('')}</tbody>
+            </table>
+          </div>
+        ` : '<div class="empty-state"><div class="empty-state-title">Tiada Tempahan</div></div>'}
+      </div>
+    `;
+    document.getElementById('modalFooter').innerHTML = `<button class="btn btn-secondary" onclick="closeModal('bookingModal')">Tutup</button>`;
+    document.getElementById('bookingModal')?.classList.add('active');
   } catch (error) {
-    showToast(error.message || 'Kata laluan gagal dikemas kini.', 'error');
+    showToast(error.message || 'Butiran pelanggan gagal dimuatkan.', 'error');
   }
 }
 
-function renderCalendar(bookings = []) {
+function renderCalendar(bookings = [], viewDate = bookingCalendarDate) {
   const calendar = document.getElementById('calendarView');
   if (!calendar) return;
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
   const days = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
   const monthNames = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
@@ -947,15 +1071,25 @@ function renderCalendar(bookings = []) {
     bookedDates[b.date].push(b);
   });
 
-  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px"><h3 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700">${monthNames[month]} ${year}</h3></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:8px">`;
-  ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'].forEach((day) => { html += `<div style="text-align:center;font-size:10px;color:var(--grey-4);padding:8px">${day}</div>`; });
-  html += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+  let html = `
+    <div class="booking-calendar-header">
+      <h3>${monthNames[month]} ${year}</h3>
+      <div class="booking-calendar-actions">
+        <button type="button" class="calendar-nav-btn" onclick="changeBookingCalendarMonth(-1)" aria-label="Bulan sebelum"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="calendar-today-btn" onclick="resetBookingCalendarMonth()">Bulan Ini</button>
+        <button type="button" class="calendar-nav-btn" onclick="changeBookingCalendarMonth(1)" aria-label="Bulan seterusnya"><i class="bi bi-chevron-right"></i></button>
+      </div>
+    </div>
+    <div class="booking-calendar-weekdays">
+  `;
+  ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'].forEach((day) => { html += `<div>${day}</div>`; });
+  html += '</div><div class="booking-calendar-grid">';
   for (let i = 0; i < firstDay; i++) html += '<div></div>';
   for (let day = 1; day <= days; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayBookings = bookedDates[dateStr] || [];
-    const isToday = day === now.getDate();
-    html += `<div style="min-height:64px;padding:6px;background:var(--surface-3);border-radius:4px;${isToday ? 'border:1px solid var(--gold)' : 'border:1px solid transparent'}"><div style="font-size:12px;font-weight:600;${isToday ? 'color:var(--gold)' : ''}">${day}</div>${calendarStatusLabels(dayBookings)}</div>`;
+    const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear();
+    html += `<div class="booking-calendar-day ${isToday ? 'today' : ''}"><div class="booking-calendar-date">${day}</div>${calendarStatusLabels(dayBookings)}</div>`;
   }
   calendar.innerHTML = html + '</div>';
 }
@@ -1142,7 +1276,7 @@ function escapeAttr(value) {
 async function init() {
   ensureFallbackSeed();
   if (document.getElementById('admin') && localStorage.getItem('ps_admin_logged_in') !== '1') {
-    window.location.href = 'login.html';
+    window.location.href = ROUTES.login;
     return;
   }
   await renderFacilities();
@@ -1165,6 +1299,10 @@ async function init() {
     document.getElementById('dashEmailInput')?.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') setUserEmail();
     });
+  }
+
+  if (document.getElementById('signup-page')) {
+    initSignupPage();
   }
 }
 
